@@ -18,7 +18,7 @@ CUSTOM_SEQ_RE = re.compile(r"(\[START_(DNA|SMILES|I_SMILES|AMINO)])(.*?)(\[END_\
 # corpus cleaning step and removed in pretokenization. The digits are added to increase the chance
 # that they do not occur in the corpus. The digits are escaped so that the token does not appear
 # literally in the source code in case we ever include it in the training data.
-SPLIT_MARKER = f"SPL{1}T-TH{1}S-Pl3A5E"
+SPLIT_MARKER = 'SPL1T-TH1S-Pl3A5E'
 
 
 def _insert_split_marker(m: re.Match):
@@ -89,9 +89,12 @@ class ModelInfo:
         ffn_dim = 4 * h_dim
         fc_size = 2 * h_dim * ffn_dim + 5 * bias  # 2 = fc1 + fc2
         decoder_layer_size = self_attn_size + fc_size + 2 * layer_norm_size
-        decoder_size = self.num_layers * decoder_layer_size + layer_norm_size + embed_tokens_size + embed_positions_size
-
-        return decoder_size
+        return (
+            self.num_layers * decoder_layer_size
+            + layer_norm_size
+            + embed_tokens_size
+            + embed_positions_size
+        )
 
     @property
     def disk_size(self) -> int:
@@ -138,13 +141,11 @@ class ModelInfoList(list):
             "Context Size": lambda m: str(m.max_positions),
         }
         output = ["<table><thead><tr>"]
-        for col in columns:
-            output.append(f"<th>{col}</th>")
+        output.extend(f"<th>{col}</th>" for col in columns)
         output.append("</tr></thead><tbody>")
         for mi in self:
             output.append("<tr>")
-            for extractor in columns.values():
-                output.append(f"<td>{extractor(mi)}</td>")
+            output.extend(f"<td>{extractor(mi)}</td>" for extractor in columns.values())
             output.append("</tr>")
         output.append("</tbody></table>")
         return "".join(output)

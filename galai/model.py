@@ -386,12 +386,12 @@ class Model(object):
         for text in texts:
             start_ref_pos = text.rfind("[START_REF]")
             if start_ref_pos == -1:
-                fixed_texts.append(text + "[START_REF]")
+                fixed_texts.append(f"{text}[START_REF]")
             else:
                 end_ref_pos = text.find("[END_REF]", start_ref_pos)
                 if end_ref_pos != -1:
                     # the last [START_REF] is closed with [END_REF], let's add another one
-                    fixed_texts.append(text + "[START_REF]")
+                    fixed_texts.append(f"{text}[START_REF]")
                 else:
                     # avoid spaces after [START_REF] token for better results
                     fixed_texts.append(text.rstrip())

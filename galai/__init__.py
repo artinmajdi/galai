@@ -84,10 +84,7 @@ def load_model(
         )
 
     if num_gpus is None:
-        if torch.cuda.is_available():
-            num_gpus = torch.cuda.device_count()
-        else:
-            num_gpus = 0
+        num_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 0
     elif num_gpus > 0:
         # make sure CUDA is available
         if not torch.cuda.is_available():

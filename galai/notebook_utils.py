@@ -63,25 +63,20 @@ def clean_html(value, tags=None, attributes=None, css_sanitizer=None):
     elif isinstance(css_sanitizer, list):
         css_sanitizer = CSSSanitizer(allowed_css_properties=css_sanitizer)
 
-    cleaned = bleach.clean(
+    return bleach.clean(
         value,
         tags=tags,
         attributes=attributes,
         css_sanitizer=css_sanitizer,
     )
 
-    return cleaned
-
 
 def _markdown2html_unsafe(value):
     """Converts markdown to unsanitized HTML."""
-    out = md.markdown(
+    return md.markdown(
         value,
-        extensions=[
-            "markdown.extensions.tables", "fenced_code", "codehilite"
-        ],
+        extensions=["markdown.extensions.tables", "fenced_code", "codehilite"],
     )
-    return out
 
 
 def markdown2html(value):
