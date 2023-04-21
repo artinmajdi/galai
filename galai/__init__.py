@@ -7,20 +7,15 @@ import warnings
 from pathlib import Path
 
 HF_MAPPING = {
-    "mini": ("facebook/galactica-125m", torch.float32),
-    "base": ("facebook/galactica-1.3b", torch.float32),
+    "mini"    : ("facebook/galactica-125m", torch.float32),
+    "base"    : ("facebook/galactica-1.3b", torch.float32),
     "standard": ("facebook/galactica-6.7b", torch.float32),
-    "large": ("facebook/galactica-30b", torch.float32),
-    "huge": ("facebook/galactica-120b", torch.float16)
+    "large"   : ("facebook/galactica-30b" , torch.float32),
+    "huge"    : ("facebook/galactica-120b", torch.float16)
 }
 
 
-def load_model(
-    name: str,
-    dtype: Union[str, torch.dtype] = None,
-    num_gpus: int = None,
-    parallelize: bool = False
-):
+def load_model( name: str, dtype: Union[str, torch.dtype] = None, num_gpus: int = None, parallelize: bool = False , cache_dir: str = None):
     """
     Utility function for loading the model
 
@@ -56,77 +51,51 @@ def load_model(
 
     if name in HF_MAPPING:
         hf_model, default_dtype = HF_MAPPING[name]
-        galai_model = True
+        galai_model             = True
+
     elif Path(name).exists():
-        hf_model = name
+        hf_model      = name
         default_dtype = torch.float32
-        galai_model = False
+        galai_model   = False
+
     else:
-        raise ValueError(
-            "Invalid model name. Must be one of 'mini', 'base', 'standard', 'large', 'huge', " +
-            "a path to a local checkpoint dir, or a model name available on HuggingFace hub."
-        )
+        raise ValueError( "Invalid model name. Must be one of 'mini', 'base', 'standard', 'large', 'huge', " + "a path to a local checkpoint dir, or a model name available on HuggingFace hub." )
 
     if dtype is None:
         dtype = default_dtype
 
     if isinstance(dtype, str):
         dtype = getattr(torch, dtype, None)
-    if dtype not in (torch.float16, torch.float32, torch.bfloat16):
-        raise ValueError(
-            f"Unsupported dtype: {dtype}"
-        )
 
-    if dtype == torch.bfloat16 and parallelize:
-        raise ValueError(
-            "Model tensor parallel does not support bfloat16 dtype. Use either dtype='float16' " +
-            "or dtype='float32', or disable tenros parallelizm with parallelize=False."
-        )
+    if dtype not in (torch.float16, torch.float32, torch.bfloat16): raise ValueError( f"Unsupported dtype: {dtype}" )
+
+    if dtype == torch.bfloat16 and parallelize: raise ValueError( "Model tensor parallel does not support bfloat16 dtype. Use either dtype='float16' " + "or dtype='float32', or disable tenros parallelizm with parallelize=False." )
 
     if num_gpus is None:
-        if torch.cuda.is_available():
-            num_gpus = torch.cuda.device_count()
-        else:
-            num_gpus = 0
+        num_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 0
+
     elif num_gpus > 0:
+
         # make sure CUDA is available
         if not torch.cuda.is_available():
-            warnings.warn(
-                "No CUDA support detected, falling back to CPU inference. If you want to run " +
-                "inference on GPU make sure CUDA is configured correctly and pytorch is " +
-                "installed with CUDA support. Set num_gpus=None to avoid this warning.",
-                UserWarning
-            )
+            warnings.warn( "No CUDA support detected, falling back to CPU inference. If you want to run inference on GPU make sure CUDA is configured correctly and pytorch is installed with CUDA support. Set num_gpus=None to avoid this warning.", UserWarning )
             num_gpus = 0
+
         elif num_gpus > torch.cuda.device_count():
             available = torch.cuda.device_count()
-            warnings.warn(
-                f"num_gpus={num_gpus} is higher than the number of available CUDA devices. " +
-                f"Setting it to {available}.",
-                UserWarning
-            )
+            warnings.warn( f"num_gpus={num_gpus} is higher than the number of available CUDA devices. " + f"Setting it to {available}.", UserWarning )
             num_gpus = available
+
     if num_gpus > 1 and parallelize and galai_model:
         mi = ModelInfo.by_name(name)
         if mi.num_heads % num_gpus != 0:
-            raise ValueError(
-                f"With parallelize=True the number of model heads ({mi.num_heads} for '{name}' " +
-                "model) must be divisible by the num_gpus. Adapt the number of GPUs, try a " +
-                "different model or set parallelize=False"
-            )
+            raise ValueError( f"With parallelize=True the number of model heads ({mi.num_heads} for '{name}' " + "model) must be divisible by the num_gpus. Adapt the number of GPUs, try a " + "different model or set parallelize=False" )
+
     if num_gpus <= 1 and parallelize:
-        warnings.warn(
-            "parallelize=True requires at least two GPUs. Setting it back to False.",
-            UserWarning
-        )
+        warnings.warn( "parallelize=True requires at least two GPUs. Setting it back to False.", UserWarning )
         parallelize = False
 
-    model = Model(
-        name=name,
-        dtype=dtype,
-        num_gpus=num_gpus,
-        tensor_parallel=parallelize,
-    )
+    model = Model( name=name, dtype=dtype, num_gpus=num_gpus, tensor_parallel=parallelize, cache_dir=cache_dir)
     model._set_tokenizer(hf_model)
     model._load_checkpoint(checkpoint_path=hf_model)
 

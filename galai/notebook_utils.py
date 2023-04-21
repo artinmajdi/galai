@@ -38,13 +38,13 @@ ALLOWED_TAGS = [
 ]
 
 ALLOWED_ATTRIBUTES = {
-    "a": ["href", "title"],
-    "abbr": ["title"],
-    "acronym": ["title"],
-    "div": ["class"],
-    "span": ["style", "class"],
-    "td": ["align", "valign"],
-    "th": ["align", "valign"],
+    "a"      : ["href" , "title" ],
+    "abbr"   : ["title"          ],
+    "acronym": ["title"          ],
+    "div"    : ["class"          ],
+    "span"   : ["style", "class" ],
+    "td"     : ["align", "valign"],
+    "th"     : ["align", "valign"],
 }
 
 ALLOWED_CSS_PROPERTIES = [
@@ -75,13 +75,7 @@ def clean_html(value, tags=None, attributes=None, css_sanitizer=None):
 
 def _markdown2html_unsafe(value):
     """Converts markdown to unsanitized HTML."""
-    out = md.markdown(
-        value,
-        extensions=[
-            "markdown.extensions.tables", "fenced_code", "codehilite"
-        ],
-    )
-    return out
+    return md.markdown( value, extensions=[ "markdown.extensions.tables", "fenced_code", "codehilite" ], )
 
 
 def markdown2html(value):

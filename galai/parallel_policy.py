@@ -18,42 +18,22 @@ class OPTDecoderLayerPolicyNoBias(Policy):
     @staticmethod
     def attn_qkv():
         return [
-            Layer(
-                weight="self_attn.q_proj.weight",
-            ),
-            Layer(
-                weight="self_attn.k_proj.weight",
-            ),
-            Layer(
-                weight="self_attn.v_proj.weight",
-            ),
+            Layer( weight="self_attn.q_proj.weight", ),
+            Layer( weight="self_attn.k_proj.weight", ),
+            Layer( weight="self_attn.v_proj.weight", ),
         ]
 
     @staticmethod
     def attn_out():
-        return [
-            Layer(
-                weight="self_attn.out_proj.weight",
-                replace=AllReduceLinear,
-            ),
-        ]
+        return [ Layer( weight="self_attn.out_proj.weight", replace=AllReduceLinear, ), ]
 
     @staticmethod
     def mlp_in():
-        return [
-            Layer(
-                weight="fc1.weight",
-            ),
-        ]
+        return [ Layer( weight="fc1.weight", ), ]
 
     @staticmethod
     def mlp_out():
-        return [
-            Layer(
-                weight="fc2.weight",
-                replace=AllReduceLinear,
-            ),
-        ]
+        return [ Layer( weight="fc2.weight", replace=AllReduceLinear, ), ]
 
     @staticmethod
     def original_layer_class():

@@ -1,0 +1,16 @@
+LICENSE
+LICENSE-MODEL.md
+MANIFEST.in
+README.md
+requirements.txt
+setup.py
+galai/__init__.py
+galai/model.py
+galai/notebook_utils.py
+galai/parallel_policy.py
+galai/utils.py
+galai.egg-info/PKG-INFO
+galai.egg-info/SOURCES.txt
+galai.egg-info/dependency_links.txt
+galai.egg-info/requires.txt
+galai.egg-info/top_level.txt

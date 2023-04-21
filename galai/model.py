@@ -48,13 +48,7 @@ class Model(object):
     using the standard HuggingFace API.
     """
 
-    def __init__(
-        self,
-        name: str,
-        dtype: str,
-        num_gpus: int,
-        tensor_parallel: bool = False,
-    ):
+    def __init__( self, name: str, dtype: str, num_gpus: int, tensor_parallel: bool = False, cache_dir: str = None ):
         """
         Initializes a new model
 
@@ -81,6 +75,7 @@ class Model(object):
         self.tensor_parallel = tensor_parallel
         self.max_input_length = 2020
         self._master_port = None
+        self.cache_dir = cache_dir
 
     def _load_checkpoint(self, checkpoint_path: str):
         """
@@ -97,22 +92,31 @@ class Model(object):
         # before loading to VRAM.
         device_map = None
         max_memory = {}
+
         if self.num_gpus > 0 and not self.tensor_parallel:
+
             # based on https://github.com/huggingface/accelerate/blob/5315290b55ea9babd95a281a27c51d87b89d7c85/src/accelerate/utils/modeling.py#L274
             for i in range(self.num_gpus):
                 _ = torch.tensor([0], device=i)
+
             for i in range(self.num_gpus):
                 max_memory[i] = torch.cuda.mem_get_info(i)[0]
+
             device_map = "auto"
+
         max_memory["cpu"] = psutil.virtual_memory().available
 
-        self.model = OPTForCausalLM.from_pretrained(
-            checkpoint_path,
-            torch_dtype=self.dtype,
-            low_cpu_mem_usage=True,
-            device_map=device_map,
-            max_memory=max_memory,
-        )
+        params = {  'pretrained_model_name_or_path': checkpoint_path,
+                    'torch_dtype'                  : self.dtype,
+                    'low_cpu_mem_usage'            : True           ,
+                    'device_map'                   : device_map     ,
+                    'max_memory'                   : max_memory     }
+
+        if self.cache_dir:
+            params['cache_dir'] = self.cache_dir
+
+        self.model = OPTForCausalLM.from_pretrained(**params)
+
         self.model.eval()
 
         if self.tensor_parallel:
@@ -134,11 +138,7 @@ class Model(object):
             from galai.parallel_policy import OPTDecoderLayerPolicyNoBias
             custom_policies = [OPTDecoderLayerPolicyNoBias]
 
-        parallelize(
-            self.model, num_gpus=self.num_gpus, fp16=self.dtype == torch.float16,
-            master_port=self._master_port,
-            custom_policies=custom_policies,
-        )
+        parallelize( self.model, num_gpus=self.num_gpus, fp16=(self.dtype==torch.float16), master_port=self._master_port, custom_policies=custom_policies)
 
     def _set_tokenizer(self, tokenizer_path: str):
         """
@@ -247,7 +247,7 @@ class Model(object):
         new_doc : bool
             If True, treats generation a new document, otherwise assumes generation could be
             anywhere within document. Use new_doc=True if you are generating documents, e.g.
-            # Schwarzschild Radius, # Transformer (machine learning), 
+            # Schwarzschild Radius, # Transformer (machine learning),
             Title: Transformers, A Survey. For general prompting, turn off. Default is False.
 
         top_p : float or None
